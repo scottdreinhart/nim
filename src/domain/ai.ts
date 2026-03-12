@@ -1,4 +1,4 @@
-import { Move as AIMove, GameState } from './types'
+import type { Move as AIMove, Difficulty, GameState } from './types'
 
 /**
  * Calculates the current Nim-sum (XOR sum) of all piles.
@@ -26,10 +26,38 @@ const getMisereMove = (state: GameState): AIMove | null => {
 }
 
 /**
- * Selects the best move for the CPU using the Nim-sum strategy.
+ * Easy AI — picks a random pile and removes a random amount.
+ */
+const selectMoveEasy = (state: GameState): AIMove => {
+  const nonEmpty = state.piles.filter((p) => p.count > 0)
+  if (nonEmpty.length === 0) {
+    return { pileId: 0, removeCount: 0 }
+  }
+  const pile = nonEmpty[Math.floor(Math.random() * nonEmpty.length)]
+  const removeCount = Math.floor(Math.random() * pile.count) + 1
+  return { pileId: pile.id, removeCount }
+}
+
+/**
+ * Medium AI — plays optimally 40% of the time, otherwise takes 1 from a random pile.
+ */
+const selectMoveMedium = (state: GameState): AIMove => {
+  if (Math.random() < 0.4) {
+    return selectMoveHard(state)
+  }
+  const nonEmpty = state.piles.filter((p) => p.count > 0)
+  if (nonEmpty.length === 0) {
+    return { pileId: 0, removeCount: 0 }
+  }
+  const pile = nonEmpty[Math.floor(Math.random() * nonEmpty.length)]
+  return { pileId: pile.id, removeCount: 1 }
+}
+
+/**
+ * Hard AI — Selects the best move using the Nim-sum strategy.
  * This is optimal for both Normal play and (mostly) Misère play.
  */
-export const selectMove = (state: GameState): AIMove => {
+const selectMoveHard = (state: GameState): AIMove => {
   // Check for specialized Misère end-game first
   if (state.mode === 'misere') {
     const misereMove = getMisereMove(state)
@@ -58,4 +86,18 @@ export const selectMove = (state: GameState): AIMove => {
 
   // Should never happen if checkGameOver works.
   return { pileId: 0, removeCount: 0 }
+}
+
+/**
+ * Selects a move based on difficulty level.
+ */
+export const selectMove = (state: GameState, difficulty: Difficulty = 'hard'): AIMove => {
+  switch (difficulty) {
+    case 'easy':
+      return selectMoveEasy(state)
+    case 'medium':
+      return selectMoveMedium(state)
+    case 'hard':
+      return selectMoveHard(state)
+  }
 }

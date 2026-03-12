@@ -13,6 +13,7 @@ export const createInitialBoard = (
   winner: null,
   isGameOver: false,
   mode,
+  lastMove: null,
 })
 
 /**
