@@ -29,3 +29,22 @@ h1 {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+@keyframes pulse-logo {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.pulsing-logo {
+  animation: pulse-logo 1.5s ease-in-out infinite;
+}

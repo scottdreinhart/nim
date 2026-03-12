@@ -1,12 +1,12 @@
-/**
- * AI Web Worker — off-main-thread computation for CPU moves.
- * Keeps UI at 60 FPS during complex AI calculations.
- */
+import { selectMove } from '@/domain/ai'
 
 self.onmessage = (e: MessageEvent) => {
-  const { board } = e.data
-  // AI computation here
-  self.postMessage({ move: -1 })
+  const { state } = e.data
+  if (!state) {
+    return
+  }
+  const move = selectMove(state)
+  self.postMessage({ move })
 }
 
 export {}
