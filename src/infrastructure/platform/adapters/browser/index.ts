@@ -3,7 +3,7 @@
  * Implements PlatformApi using standard Web APIs
  */
 
-import type { PlatformApi } from '../contracts/types'
+import type { PlatformApi } from '../../contracts'
 
 const browserHaptics = {
   async light() {
@@ -42,19 +42,19 @@ const browserDiagnostics = {
   logInfo(message: string) {
     console.log('[INFO]', message)
   },
-  trackEvent(eventName: string, data?: Record<string, any>) {
+  trackEvent(_eventName: string, _data?: Record<string, any>) {
     // No-op in browser; could integrate analytics service
   },
 }
 
 const browserAudio = {
-  async play(soundId: string) {
+  async play(_soundId: string) {
     // No-op (handled by app layer)
   },
-  async stop(soundId: string) {
+  async stop(_soundId: string) {
     // No-op
   },
-  setVolume(level: number) {
+  setVolume(_level: number) {
     // No-op
   },
 }
@@ -73,7 +73,7 @@ const browserDevice = {
       supportsNotifications: !!('Notification' in window),
     }
   },
-  onOrientationChange(callback) {
+  onOrientationChange(callback: (orientation: 'portrait' | 'landscape') => void): () => void {
     const handler = () => {
       const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
       callback(orientation)

@@ -1,8 +1,7 @@
-import { useResponsiveState } from '@/app'
+import { useResponsiveState, useDropdownBehavior } from '@/app'
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import useDropdownBehavior from '../../app/useDropdownBehavior.ts'
 import styles from './HamburgerMenu.module.css'
 
 interface PanelPosition {

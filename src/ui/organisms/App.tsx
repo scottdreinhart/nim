@@ -19,8 +19,8 @@ import {
   useSoundEffects,
   useStats,
   useThemeContext,
-  vibrate,
 } from '@/app'
+import { haptics } from '@/infrastructure/haptics'
 import { GAME_PRESETS } from '@/domain/constants'
 import { COLOR_THEMES } from '@/ui/theme'
 import { DifficultyToggle, RulesToggle } from '@/ui/atoms'
@@ -60,11 +60,11 @@ export default function App() {
       if (game.opponent === 'cpu') {
         if (game.state.winner === 'human') {
           sfx.onWin()
-          vibrate([50, 30, 50])
+          haptics.success()
           recordWin()
         } else {
           sfx.onLose()
-          vibrate(100)
+          haptics.error()
           recordLoss()
         }
       }
@@ -76,7 +76,7 @@ export default function App() {
   useEffect(() => {
     if (game.state.lastMove?.player === 'cpu') {
       sfx.onCpuMove()
-      vibrate(30)
+      haptics.light()
     }
   }, [game.state.lastMove, sfx])
 
@@ -108,7 +108,7 @@ export default function App() {
   const handleObjectClick = useCallback(
     (pileId: number, index: number) => {
       sfx.onSelect()
-      vibrate(10)
+      haptics.light()
       game.handleObjectClick(pileId, index)
     },
     [game, sfx],
@@ -116,7 +116,7 @@ export default function App() {
 
   const handleConfirm = useCallback(() => {
     sfx.onConfirm()
-    vibrate(20)
+    haptics.light()
     game.confirmMove()
   }, [game, sfx])
 

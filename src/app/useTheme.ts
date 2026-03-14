@@ -226,4 +226,4 @@ const useTheme = (): UseThemeReturn => {
   return { settings, setColorTheme, setMode, setColorblind }
 }
 
-export default useTheme
+export { useTheme }

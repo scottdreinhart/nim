@@ -29,6 +29,12 @@ export default defineConfig({
     minify: 'esbuild',
     cssMinify: true,
     rollupOptions: {
+      external: [
+        '@capacitor/core',
+        '@capacitor/haptics',
+        '@capacitor/preferences',
+        '@capacitor/app',
+      ],
       output: {
         manualChunks: {
           react: ['react', 'react-dom'],

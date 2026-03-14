@@ -58,7 +58,17 @@
   },
   "dependencies": {
     "@capacitor/android": "8.2.0",
+    "@capacitor/app": "8.0.1",
     "@capacitor/core": "8.2.0",
+    "@capacitor/device": "8.0.1",
+    "@capacitor/haptics": "8.0.1",
+    "@capacitor/keyboard": "8.0.1",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/splash-screen": "8.0.1",
+    "@capacitor/status-bar": "8.0.1",
+    "electron-log": "5.4.3",
+    "electron-store": "11.0.2",
+    "electron-updater": "6.8.3",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },

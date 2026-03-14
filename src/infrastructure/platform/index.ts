@@ -11,5 +11,5 @@ export { createElectronPlatformApi } from './adapters/electron/index'
 export { createCapacitorPlatformApi } from './adapters/capacitor/index'
 
 // Responsive platform capabilities
-export { responsive, MEDIA_QUERIES, deriveResponsiveState } from './responsive'
+export { MEDIA_QUERIES, deriveResponsiveState } from './responsive'
 export type { ResponsiveCapabilities, ResponsiveState } from './responsive'

@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useContext } from 'react'
 
-import useTheme from './useTheme'
+import { useTheme } from './useTheme'
 
 type UseThemeReturn = ReturnType<typeof useTheme>
 

@@ -55,4 +55,4 @@ const useDropdownBehavior = ({
   }, [open, triggerRef, panelRef, onOutsideClick])
 }
 
-export default useDropdownBehavior
+export { useDropdownBehavior }

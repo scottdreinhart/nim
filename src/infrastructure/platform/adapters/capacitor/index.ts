@@ -3,13 +3,13 @@
  * Implements PlatformApi using Capacitor plugins for iOS/Android
  */
 
-import type { PlatformApi } from '../../contracts/types'
+import type { PlatformApi } from '../../contracts'
 
 const capacitorHaptics = {
   async light() {
     try {
       const { Haptics } = await import('@capacitor/haptics')
-      await Haptics.notification({ type: 'Light' })
+      await Haptics.notification({ type: 'Light' as any })
     } catch {
       // Fallback: use browser vibration
       if (navigator.vibrate) navigator.vibrate(10)
@@ -18,7 +18,7 @@ const capacitorHaptics = {
   async medium() {
     try {
       const { Haptics } = await import('@capacitor/haptics')
-      await Haptics.notification({ type: 'Medium' })
+      await Haptics.notification({ type: 'Medium' as any })
     } catch {
       if (navigator.vibrate) navigator.vibrate(20)
     }
@@ -26,7 +26,7 @@ const capacitorHaptics = {
   async heavy() {
     try {
       const { Haptics } = await import('@capacitor/haptics')
-      await Haptics.notification({ type: 'Heavy' })
+      await Haptics.notification({ type: 'Heavy' as any })
     } catch {
       if (navigator.vibrate) navigator.vibrate(50)
     }
@@ -81,19 +81,19 @@ const capacitorDiagnostics = {
   logInfo(message: string) {
     console.log('[INFO]', message)
   },
-  trackEvent(eventName: string, data?: Record<string, any>) {
+  trackEvent(_eventName: string, _data?: Record<string, any>) {
     // Could integrate Firebase Analytics or similar
   },
 }
 
 const capacitorAudio = {
-  async play(soundId: string) {
-    // No-op (handled by app layer via Web Audio API)
+  async play(_soundId: string) {
+    // No-op (handled by app layer)
   },
-  async stop(soundId: string) {
+  async stop(_soundId: string) {
     // No-op
   },
-  setVolume(level: number) {
+  setVolume(_level: number) {
     // No-op
   },
 }
@@ -113,7 +113,7 @@ const capacitorDevice = {
       supportsNotifications: true, // Capacitor provides local notifications
     }
   },
-  onOrientationChange(callback) {
+  onOrientationChange(callback: (orientation: 'portrait' | 'landscape') => void): () => void {
     const handler = () => {
       const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
       callback(orientation)
