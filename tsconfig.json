@@ -16,12 +16,11 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".ts-buildinfo",
     "types": ["vite/client"],
     "paths": {
-      "@/*": ["./src/*"],
-      "@/domain/*": ["./src/domain/*"],
-      "@/app/*": ["./src/app/*"],
-      "@/ui/*": ["./src/ui/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "src/vite-env.d.ts"]

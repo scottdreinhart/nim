@@ -4,6 +4,7 @@
   "description": "Nim",
   "type": "module",
   "private": true,
+  "sideEffects": false,
   "license": "PROPRIETARY",
   "author": "Scott Reinhart",
   "packageManager": "pnpm@10.31.0",
@@ -16,6 +17,7 @@
     "start": "pnpm exec vite --host",
     "dev": "pnpm exec kill-port 5173 || true; pnpm exec vite --host",
     "build": "pnpm exec vite build",
+    "build:analyze": "pnpm exec vite build --mode analyze",
     "preview": "pnpm exec vite preview",
     "build:preview": "pnpm build && pnpm preview",
     "lint": "pnpm exec eslint src/",
@@ -23,6 +25,9 @@
     "format": "pnpm exec prettier --write src/",
     "format:check": "pnpm exec prettier --check src/",
     "typecheck": "pnpm exec tsc",
+    "perf:ts:diag": "pnpm exec tsc --noEmit --extendedDiagnostics",
+    "perf:ts:trace": "pnpm exec rimraf .ts-trace && pnpm exec tsc --noEmit --incremental false --generateTrace .ts-trace",
+    "perf:ts:baseline:append": "pnpm run perf:ts:diag > .ts-perf-runs/diag-clean.txt && pnpm run perf:ts:trace > .ts-perf-runs/trace-clean.txt && node scripts/append-ts-baseline-history.js",
     "test": "pnpm exec vitest run",
     "test:watch": "pnpm exec vitest",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck",
@@ -70,7 +75,8 @@
     "electron-store": "11.0.2",
     "electron-updater": "6.8.3",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-vfx": "0.2.0"
   },
   "optionalDependencies": {
     "@esbuild/linux-x64": "0.27.3",

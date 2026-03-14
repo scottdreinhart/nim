@@ -6,6 +6,119 @@
 
 ---
 
+## § 23. Accessibility Governance (WCAG 2.1 AA)
+
+All UI must comply with WCAG 2.1 AA baseline requirements.
+
+### Mandatory
+
+- Keyboard navigation works for all interactive controls (Tab order, Escape to close, visible focus states).
+- Screen reader semantics are present and correct (`aria-label`, `aria-labelledby`, `aria-live`, semantic HTML).
+- Contrast meets WCAG AA minimums (text/background and control boundaries).
+- Form controls have explicit labels and proper associations.
+- Color is never the sole carrier of meaning; pair with icon/text/pattern.
+
+### Verification
+
+- Run linting accessibility rules (`jsx-a11y/*`) via `pnpm lint`.
+- Perform manual keyboard traversal and focus checks.
+- Validate contrast with approved tooling during review.
+
+### Related file
+
+- `.github/instructions/09-wcag-accessibility.instructions.md`
+
+---
+
+## § 24. Security Governance (Frontend + Runtime)
+
+All code must follow least-risk defaults for client and desktop runtime paths.
+
+### Mandatory
+
+- No unsafe HTML injection (`dangerouslySetInnerHTML`) unless explicitly approved and sanitized.
+- Validate untrusted input and URLs before use.
+- Never hardcode secrets or tokens in source.
+- Use environment-based configuration for sensitive runtime values.
+- Prefer secure Electron defaults (`sandbox`, `contextIsolation`, controlled preload surface).
+
+### Verification
+
+- Run security-focused linting rules through `pnpm lint`.
+- Review any parsing/redirect logic for validation and allowlisting.
+
+### Related file
+
+- `.github/instructions/10-security.instructions.md`
+
+---
+
+## § 25. Performance & Web Vitals Governance
+
+Performance work must be measurement-led and preserve user responsiveness.
+
+### Mandatory
+
+- Use repository scripts and `pnpm` tooling only for performance checks.
+- Prefer profiling before introducing memoization or architectural complexity.
+- Keep animation work GPU-friendly (`transform`/`opacity`) and respect reduced-motion preferences.
+- Use lazy loading/code splitting for heavy optional surfaces.
+
+### Targets (guidance)
+
+- Maintain healthy Core Web Vitals and bundle budgets appropriate for app scope.
+- Keep interactive paths responsive on baseline development hardware.
+
+### Related files
+
+- `.github/instructions/11-performance.instructions.md` — Web Vitals guidance
+- `.github/instructions/14-performance-optimization.instructions.md` — Concrete optimizations: hook consolidation, organism memoization, code-splitting, shader compilation, ESLint rules
+
+---
+
+## § 26. Error Handling & Recovery Governance
+
+Failures must degrade gracefully and remain diagnosable.
+
+### Mandatory
+
+- Use Error Boundary patterns for render/lifecycle failure containment.
+- Handle event and async failures at call-site (`try/catch` + user-safe fallback).
+- Classify errors (user, recoverable system, fatal) and apply matching recovery actions.
+- Log actionable context for diagnostics without leaking sensitive data.
+
+### Verification
+
+- Validate boundary fallback behavior, retry flow, and recovery path UX.
+
+### Related file
+
+- `.github/instructions/12-error-handling.instructions.md`
+
+---
+
+## § 27. Mobile Gesture Governance
+
+Touch interaction must be explicit, ergonomic, and action-model aligned.
+
+### Mandatory
+
+- Gesture handling maps to semantic actions (not ad-hoc device events in feature logic).
+- Swipe and long-press thresholds are intentional and avoid accidental triggers.
+- Haptic feedback is optional/enhancing, never required to complete flows.
+- Gesture layers must not break browser/native scrolling and text interaction.
+
+### Verification
+
+- Test swipe/long-press/haptic behavior on representative touch devices.
+- Confirm gestures do not conflict with focus, keyboard, or pointer interaction paths.
+
+### Related file
+
+- `.github/instructions/13-mobile-gestures.instructions.md`
+
+---
+
 ## 1. Governance Precedence
 
 1. **AGENTS.md** (this file) — supreme authority; overrides all other governance files.
@@ -165,6 +278,7 @@ These patterns violate architecture and must never appear in code review:
 | **Mutable state in domain layer** | Framework coupling, untestable | Domain returns new state; app layer persists |
 | **Worker imports in non-worker files** | Circular dependencies, coupling | Use message-based API only |
 | **Global `matchMedia()` calls** | Scattered responsive checks, brittle | Use `useResponsiveState()` hook only |
+| **Ad-hoc compatibility shims** (temporary re-export wrappers left indefinitely) | Hides migration debt, confuses diagnostics, creates dual APIs | Prefer direct call-site migration; if temporary shim is unavoidable, document scope + removal date and delete in next cleanup pass |
 | **Orphaned scripts** (build-time scripts in random languages) | Duplicates existing tooling | Use existing `pnpm` scripts or JavaScript in `scripts/` |
 | **Spreading CSS from outside `src/themes/`** | Theme coupling, hard to swap | Themes live only in `src/themes/`, imported via ThemeContext |
 
@@ -2049,6 +2163,37 @@ Web Worker follows WASM-first pattern:
 
 `assemblyscript` (0.28.10)
 
+### Performance Optimization Guardrails (WASM/AssemblyScript)
+
+WASM is for computational hot paths, not a blanket replacement for JavaScript.
+
+1. **Use WASM only when measured**
+  - Start with JavaScript baseline, then compare against WASM for the same workload.
+  - Prefer official measurements (`pnpm` scripts + traces) over assumptions.
+
+2. **Minimize JS ↔ WASM boundary crossings**
+  - Batch work and transfer data in larger chunks.
+  - Avoid tight loops that call across the boundary per element.
+
+3. **Optimize the compile pipeline for production**
+  - Use production-oriented AssemblyScript optimization flags.
+  - Keep `wasm-opt` (Binaryen) in the build pipeline when available.
+  - Track output size and startup time regressions together.
+
+4. **Memory discipline is mandatory**
+  - Prefer sequential access patterns for cache locality.
+  - Avoid unnecessary memory growth and repeated reallocations.
+  - Use explicit data-layout choices for hot loops.
+
+5. **Concurrency and SIMD are opt-in, measured features**
+  - Use Web Workers for CPU-heavy tasks that risk UI blocking.
+  - Use SIMD only when profiling shows clear benefit on target devices.
+  - Provide deterministic fallback paths when features are unavailable.
+
+6. **Good-fit policy**
+  - Best for image/data transforms, simulations, and deterministic compute kernels.
+  - Avoid WASM-first solutions for I/O-bound or trivial logic where interop overhead dominates.
+
 ---
 
 ## § 17. Responsive Design & Mobile-First Patterns
@@ -2530,9 +2675,13 @@ src/ui/atoms/
 ├── Tooltip/
 │   ├── Tooltip.tsx
 │   └── Tooltip.module.css
-└── Spinner/
-    ├── Spinner.tsx
-    └── Spinner.module.css
+├── Spinner/
+│   ├── Spinner.tsx
+│   └── Spinner.module.css
+└── GlitchText/
+    ├── GlitchText.tsx              # WebGL glitch effect wrapper (react-vfx)
+    ├── GlitchText.module.css
+    └── GlitchText.types.ts
 ```
 
 **Barrel Pattern**:
@@ -2546,6 +2695,7 @@ export { Icon } from './Icon/Icon'
 export { Label } from './Label/Label'
 export { Tooltip } from './Tooltip/Tooltip'
 export { Spinner } from './Spinner/Spinner'
+export { GlitchText } from './GlitchText/GlitchText'
 ```
 
 **Atom Characteristics**:
@@ -2591,9 +2741,13 @@ src/ui/molecules/
 │   ├── DropdownMenu.tsx            # Portal-based dropdown
 │   ├── DropdownMenu.module.css
 │   └── useDropdownBehavior.ts      # Shared behavior hook
-└── DifficultySelector/
-    ├── DifficultySelector.tsx       # Multi-option selector
-    └── DifficultySelector.module.css
+├── DifficultySelector/
+│   ├── DifficultySelector.tsx       # Multi-option selector
+│   └── DifficultySelector.module.css
+└── GlitchNotification/
+    ├── GlitchNotification.tsx       # Cyberpunk error/success notification
+    ├── GlitchNotification.module.css
+    └── GlitchNotification.types.ts
 ```
 
 **Barrel Pattern**:
@@ -2606,6 +2760,7 @@ export { DialogFooter } from './DialogFooter/DialogFooter'
 export { TabBar } from './TabBar/TabBar'
 export { DropdownMenu } from './DropdownMenu/DropdownMenu'
 export { DifficultySelector } from './DifficultySelector/DifficultySelector'
+export { GlitchNotification } from './GlitchNotification/GlitchNotification'
 // Do NOT export internal hooks like useDropdownBehavior
 ```
 
@@ -2887,12 +3042,13 @@ This section formalizes the build system, dependencies, and script execution as 
 
 ### 22.1 Runtime Dependencies (Absolute Minimum)
 
-**Current:** 4 packages required for production
+**Current:** 5 packages required for production
 
 | Package | Version | Purpose | Official Docs |
 |---------|---------|---------|---------------|
 | `react` | 19.2.4 | UI library | https://react.dev |
 | `react-dom` | 19.2.4 | React rendering | https://react.dev |
+| `react-vfx` | 0.2.0 | WebGL visual effects (RGB glitch, distortion shaders) | https://github.com/jpmorgenthal/react-vfx |
 | `@capacitor/core` | 8.2.0 | Mobile bridge | https://capacitorjs.com |
 | `@capacitor/cli` | 8.2.0 | Mobile tooling | https://capacitorjs.com/docs |
 
@@ -2900,10 +3056,18 @@ This section formalizes the build system, dependencies, and script execution as 
 - ❌ No runtime UI frameworks beyond React (no Vue, Svelte, Angular)
 - ❌ No runtime state management (Redux, Zustand, etc.) — use React hooks + Context
 - ❌ No runtime HTTP clients — use native `fetch` API
-- ❌ No animation libraries — use CSS animations + springs via CSS-in-JS
+- ❌ No animation libraries — use CSS animations + springs via CSS-in-JS (exception: `react-vfx` for WebGL-based visual effects like glitch shaders)
 - ✅ Add only when blocking production issue cannot be solved any other way
 - ✅ Every addition requires AGENTS.md documentation update
 - ✅ Every addition requires official documentation link in this table
+
+**react-vfx Addition Context** (exception to "no animation libraries" rule):
+- **Problem solved**: Cyberpunk/hacker aesthetic for error notifications via WebGL fragment shaders
+- **Why exception**: CSS-only glitch effects cannot replicate RGB shift distortion or real-time shader computation
+- **Architecture**: Wrapped in custom atoms (`GlitchText`) and molecules (`GlitchNotification`) per CLEAN architecture
+- **Performance**: Minimal overhead (single WebGL canvas context, reused for all effects)
+- **Fallback**: If shader compilation fails, graceful degradation to base component without visual effect
+- **Accessibility**: Respects `prefers-reduced-motion` — disables shader when motion reduction requested
 
 **Addition Guardrail**:
 ```

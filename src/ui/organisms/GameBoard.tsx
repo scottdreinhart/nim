@@ -1,8 +1,8 @@
-import { useResponsiveState } from '@/app'
-import type { GameState, LastMove, Opponent } from '@/domain/types'
-import { PileToggle } from '@/ui/molecules'
-import { cx } from '@/ui/utils/cssModules'
-import { useCallback, useEffect } from 'react'
+import { useCallback, memo } from 'react'
+
+import { useI18nContext, useKeyboardControls, useResponsiveState } from '@/app'
+import type { GameState, Opponent } from '@/domain'
+import { cx, PileToggle } from '@/ui'
 
 import styles from './GameBoard.module.css'
 
@@ -18,28 +18,32 @@ interface GameBoardProps {
   onReset: () => void
 }
 
-function getPlayerLabel(opponent: Opponent, currentPlayer: 'human' | 'cpu'): string {
+function getPlayerLabel(
+  opponent: Opponent,
+  currentPlayer: 'human' | 'cpu',
+  t: (key: 'game.player1Turn' | 'game.player2Turn' | 'game.yourTurn' | 'game.cpuThinking') => string,
+): string {
   if (opponent === 'local') {
-    return currentPlayer === 'human' ? 'PLAYER 1' : 'PLAYER 2'
+    return currentPlayer === 'human' ? t('game.player1Turn') : t('game.player2Turn')
   }
-  return currentPlayer === 'human' ? 'YOUR TURN' : 'CPU THINKING'
+  return currentPlayer === 'human' ? t('game.yourTurn') : t('game.cpuThinking')
 }
 
 function getWinnerLabel(
   opponent: Opponent,
   winner: 'human' | 'cpu' | null,
-  lastMove: LastMove | null,
+  t: (key: 'game.player1Wins' | 'game.player2Wins' | 'game.youWon' | 'game.youLost') => string,
 ): string {
   if (!winner) {
     return ''
   }
   if (opponent === 'local') {
-    return lastMove?.player === 'human' ? 'PLAYER 1 WINS!' : 'PLAYER 2 WINS!'
+    return winner === 'human' ? t('game.player1Wins') : t('game.player2Wins')
   }
-  return winner === 'human' ? 'YOU WON!' : 'YOU LOST'
+  return winner === 'human' ? t('game.youWon') : t('game.youLost')
 }
 
-export function GameBoard({
+function GameBoardRaw({
   state,
   selectedPileId,
   selectedCount,
@@ -51,56 +55,96 @@ export function GameBoard({
   onReset,
 }: GameBoardProps) {
   const responsive = useResponsiveState()
+  const { t } = useI18nContext()
   const canConfirm = selectedPileId !== null && selectedCount > 0
   const isHumanTurn = state.currentPlayer === 'human'
   const canInteract = opponent === 'local' || isHumanTurn
   const playerWon = opponent === 'local' ? true : state.winner === 'human'
 
-  // Keyboard navigation
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  const selectAdjacentPile = useCallback(
+    (direction: 'left' | 'right') => {
       if (state.isGameOver || !canInteract) {
         return
       }
+
       const nonEmpty = state.piles.filter((p) => p.count > 0)
       if (nonEmpty.length === 0) {
         return
       }
 
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault()
-        const currentIdx = nonEmpty.findIndex((p) => p.id === selectedPileId)
-        let nextIdx: number
-        if (e.key === 'ArrowRight') {
-          nextIdx = currentIdx < 0 ? 0 : (currentIdx + 1) % nonEmpty.length
-        } else {
-          nextIdx = currentIdx <= 0 ? nonEmpty.length - 1 : currentIdx - 1
-        }
-        const pile = nonEmpty[nextIdx]
-        onObjectClick(pile.id, 0)
-      } else if (e.key === 'ArrowUp' && selectedPileId !== null) {
-        e.preventDefault()
-        const pile = state.piles.find((p) => p.id === selectedPileId)
-        if (pile && selectedCount < pile.count) {
-          onObjectClick(selectedPileId, selectedCount)
-        }
-      } else if (e.key === 'ArrowDown' && selectedPileId !== null) {
-        e.preventDefault()
-        if (selectedCount > 1) {
-          onObjectClick(selectedPileId, selectedCount - 2)
-        }
-      } else if (e.key === 'Enter' && canConfirm) {
-        e.preventDefault()
-        onConfirm()
-      }
+      const currentIdx = nonEmpty.findIndex((p) => p.id === selectedPileId)
+      const nextIdx =
+        direction === 'right'
+          ? currentIdx < 0
+            ? 0
+            : (currentIdx + 1) % nonEmpty.length
+          : currentIdx <= 0
+            ? nonEmpty.length - 1
+            : currentIdx - 1
+
+      onObjectClick(nonEmpty[nextIdx].id, 0)
     },
-    [state, selectedPileId, selectedCount, canInteract, canConfirm, onObjectClick, onConfirm],
+    [state, canInteract, selectedPileId, onObjectClick],
   )
 
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+  const increaseSelection = useCallback(() => {
+    if (state.isGameOver || !canInteract || selectedPileId === null) {
+      return
+    }
+    const pile = state.piles.find((p) => p.id === selectedPileId)
+    if (pile && selectedCount < pile.count) {
+      onObjectClick(selectedPileId, selectedCount)
+    }
+  }, [state, canInteract, selectedPileId, selectedCount, onObjectClick])
+
+  const decreaseSelection = useCallback(() => {
+    if (state.isGameOver || !canInteract || selectedPileId === null) {
+      return
+    }
+    if (selectedCount > 1) {
+      onObjectClick(selectedPileId, selectedCount - 2)
+    }
+  }, [state, canInteract, selectedPileId, selectedCount, onObjectClick])
+
+  const confirmSelection = useCallback(() => {
+    if (canConfirm) {
+      onConfirm()
+    }
+  }, [canConfirm, onConfirm])
+
+  useKeyboardControls(
+    [
+      {
+        action: 'moveLeft',
+        keys: ['ArrowLeft', 'KeyA'],
+        onTrigger: () => selectAdjacentPile('left'),
+      },
+      {
+        action: 'moveRight',
+        keys: ['ArrowRight', 'KeyD'],
+        onTrigger: () => selectAdjacentPile('right'),
+      },
+      {
+        action: 'moveUp',
+        keys: ['ArrowUp', 'KeyW'],
+        onTrigger: increaseSelection,
+      },
+      {
+        action: 'moveDown',
+        keys: ['ArrowDown', 'KeyS'],
+        onTrigger: decreaseSelection,
+      },
+      {
+        action: 'confirm',
+        keys: ['Enter', 'NumpadEnter', 'Space'],
+        onTrigger: confirmSelection,
+      },
+    ],
+    {
+      enabled: !state.isGameOver,
+      ignoreInputs: true,
+    },
+  )
 
   // Determine board size based on device class
   const getBoardMaxWidth = (): string => {
@@ -160,7 +204,7 @@ export function GameBoard({
                   onObjectClick(pile.id, pile.count - 1)
                   onConfirm()
                 }}
-                aria-label={`Take all from pile ${pile.id + 1}`}
+                aria-label={t('game.takeAllFromPile', { pile: pile.id + 1 })}
                 style={{
                   padding:
                     responsive.contentDensity === 'compact' ? '0.4rem 0.6rem' : '0.5rem 0.8rem',
@@ -185,11 +229,14 @@ export function GameBoard({
           <div className={styles.winOverlay}>
             <h2
               className={cx(styles.winTitle, playerWon ? styles.winTitleWin : styles.winTitleLose)}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
               style={{
                 fontSize: responsive.contentDensity === 'compact' ? '1.5rem' : '2rem',
               }}
             >
-              {getWinnerLabel(opponent, state.winner, state.lastMove)}
+              {getWinnerLabel(opponent, state.winner, t)}
             </h2>
             <button
               className={styles.playAgainBtn}
@@ -199,7 +246,7 @@ export function GameBoard({
                 fontSize: responsive.contentDensity === 'compact' ? '0.9rem' : '1rem',
               }}
             >
-              PLAY AGAIN
+              {t('game.playAgain')}
             </button>
           </div>
         ) : (
@@ -209,13 +256,17 @@ export function GameBoard({
                 styles.turnLabel,
                 canInteract ? styles.turnLabelActive : styles.turnLabelInactive,
               )}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={t('game.liveStatus')}
               style={{
                 fontSize: responsive.contentDensity === 'compact' ? '0.85rem' : '1rem',
               }}
             >
               {cpuThinking ? (
                 <span>
-                  CPU THINKING{' '}
+                  {t('game.cpuThinking')}{' '}
                   <span className={styles.thinkingDots}>
                     <span className={styles.thinkingDot} />
                     <span className={styles.thinkingDot} />
@@ -223,7 +274,7 @@ export function GameBoard({
                   </span>
                 </span>
               ) : (
-                getPlayerLabel(opponent, state.currentPlayer)
+                getPlayerLabel(opponent, state.currentPlayer, t)
               )}
             </div>
 
@@ -241,7 +292,7 @@ export function GameBoard({
                   fontSize: responsive.contentDensity === 'compact' ? '0.9rem' : '1rem',
                 }}
               >
-                End Turn
+                {t('game.endTurn')}
               </button>
             )}
           </div>
@@ -250,3 +301,12 @@ export function GameBoard({
     </div>
   )
 }
+
+/**
+ * GameBoard memoized to prevent unnecessary re-renders when parent context updates.
+ * Props are compared shallowly via React.memo() — as long as prop identity doesn't change,
+ * the component will skip re-rendering.
+ *
+ * See § 14 Performance Optimization Governance for rationale.
+ */
+export const GameBoard = memo(GameBoardRaw)
