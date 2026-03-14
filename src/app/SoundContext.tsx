@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useRef, useState } from 'react'
-import { load, save } from './storageService'
+import { load, save } from '@/infrastructure/storage'
 
 interface SoundContextValue {
   /** Whether sound effects are enabled */

@@ -2,8 +2,8 @@
   text-align: center;
   padding: 2.5rem;
   font-family: system-ui, sans-serif;
-  background: #37474f;
-  color: #eceff1;
+  background: var(--theme-card);
+  color: var(--theme-fg);
   display: flex;
   flex-direction: column;
   border-radius: 24px;
@@ -34,7 +34,7 @@
 .closeBtn {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--theme-fg);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 4px 8px;
@@ -45,6 +45,7 @@
   letter-spacing: 2px;
   text-transform: uppercase;
   font-size: 1.8rem;
+  color: var(--theme-fg);
 }
 
 .gearBtn {
@@ -57,7 +58,7 @@
 }
 
 .gearBtn:hover {
-  color: white;
+  color: var(--theme-fg);
 }
 
 /* Info Badges */
@@ -70,24 +71,26 @@
 }
 
 .badge {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
   padding: 6px 16px;
   border-radius: 50px;
   font-size: 0.85rem;
+  border: 1px solid var(--theme-border);
 }
 
 .badgeLabel {
-  opacity: 0.7;
+  opacity: 0.6;
+  color: var(--theme-fg);
 }
 
 .badgeNormal {
   font-weight: 700;
-  color: #90caf9;
+  color: var(--theme-accent);
 }
 
 .badgeMisere {
   font-weight: 700;
-  color: #f48fb1;
+  color: var(--theme-accent);
 }
 
 .badgeEasy {
@@ -133,16 +136,23 @@
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
+  background: var(--theme-accent);
   color: white;
   font-size: 1.2rem;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s ease;
+  transition:
+    transform 0.1s ease,
+    opacity 0.2s ease;
+  opacity: 0.9;
+}
+
+.takeAllBtn:hover {
+  opacity: 1;
 }
 
 .takeAllBtn:active {
@@ -157,9 +167,10 @@
 
 /* Win Overlay */
 .winOverlay {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   padding: 1.5rem;
   border-radius: 16px;
+  border: 1px solid var(--theme-border);
   animation: popIn 0.3s ease-out;
 }
 
@@ -177,19 +188,23 @@
 }
 
 .playAgainBtn {
-  background-color: #fff;
-  color: #37474f;
+  background-color: var(--theme-accent);
+  color: white;
   border: none;
   padding: 0.8rem 2.5rem;
   border-radius: 30px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition:
+    transform 0.1s ease,
+    opacity 0.2s ease;
+  opacity: 0.95;
 }
 
 .playAgainBtn:hover {
   transform: translateY(-1px);
+  opacity: 1;
 }
 
 /* Turn Indicator */
@@ -206,11 +221,12 @@
 }
 
 .turnLabelActive {
-  color: #fff;
+  color: var(--theme-fg);
 }
 
 .turnLabelInactive {
-  color: #90a4ae;
+  color: var(--theme-fg);
+  opacity: 0.6;
 }
 
 /* Confirm Button */
@@ -228,18 +244,19 @@
 
 .confirmBtnEnabled {
   cursor: pointer;
-  background-color: #4db6ac;
+  background-color: var(--theme-accent);
   color: white;
 }
 
 .confirmBtnEnabled:hover {
-  background-color: #26a69a;
+  opacity: 0.85;
 }
 
 .confirmBtnDisabled {
   cursor: not-allowed;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--theme-fg);
+  opacity: 0.5;
 }
 
 /* CPU thinking indicator */
@@ -252,7 +269,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #90a4ae;
+  background: var(--theme-accent);
   animation: bounce 1.4s ease-in-out infinite;
 }
 

@@ -1,19 +1,18 @@
-import { SoundProvider } from '@/app/SoundContext'
-import { ThemeProvider } from '@/app/ThemeContext'
-import { ErrorBoundary } from '@/ui/atoms/ErrorBoundary'
-import App from '@/ui/organisms/App'
+import { ErrorBoundary } from '@/ui/organisms'
+import ShellApp from '@/ui/organisms/ShellApp'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './styles.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <SoundProvider>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
-      </SoundProvider>
-    </ThemeProvider>
+    <ErrorBoundary
+      onError={(error, info) => {
+        // Error logged in ErrorBoundary component; can enhance with crashLogger
+        console.error('React Error Boundary', error.message, info)
+      }}
+    >
+      <ShellApp />
+    </ErrorBoundary>
   </React.StrictMode>,
 )

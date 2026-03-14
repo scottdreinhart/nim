@@ -7,7 +7,7 @@ import { useCallback, useState } from 'react'
 import { DEFAULT_STATS } from '@/domain/constants'
 import type { GameStats } from '@/domain/types'
 
-import { load, save } from './storageService'
+import { load, save } from '@/infrastructure/storage'
 
 const STORAGE_KEY = 'nim-stats'
 

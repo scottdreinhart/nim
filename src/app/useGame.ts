@@ -5,7 +5,7 @@ import { checkGameOver, getWinner } from '@/domain/rules'
 import type { Difficulty, GameMode, GameState, Move, Opponent, Player } from '@/domain/types'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { load, save } from './storageService'
+import { load, save } from '@/infrastructure/storage'
 
 const SETUP_KEY = 'nim-setup'
 const MODE_KEY = 'nim-mode'

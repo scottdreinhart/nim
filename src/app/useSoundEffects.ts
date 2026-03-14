@@ -6,7 +6,7 @@
 import { useCallback } from 'react'
 
 import { useSoundContext } from './SoundContext'
-import { playClick, playConfirm, playCpuMove, playLose, playSelect, playWin } from './sounds'
+import { playClick, playConfirm, playCpuMove, playLose, playSelect, playWin } from '@/infrastructure/audio'
 
 export interface SoundEffects {
   onSelect: () => void

@@ -1,40 +1,37 @@
+/**
+ * SSR-safe window size hook. Returns current viewport width and height.
+ *
+ * Use this only when exact pixel dimensions are needed (canvas sizing,
+ * pixel math, drag bounds). For semantic layout decisions, prefer
+ * media queries via useResponsiveState().
+ */
+
 import { useEffect, useState } from 'react'
 
-interface WindowSize {
-  width: number
-  height: number
-  isMobile: boolean
-  isTablet: boolean
-  isDesktop: boolean
+export interface WindowSize {
+  readonly width: number
+  readonly height: number
 }
 
-export const useWindowSize = (): WindowSize => {
-  const [windowSize, setWindowSize] = useState<WindowSize>({
-    width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    height: typeof window !== 'undefined' ? window.innerHeight : 0,
-    isMobile: false,
-    isTablet: false,
-    isDesktop: true,
-  })
+function getSize(): WindowSize {
+  if (typeof window === 'undefined') {
+    return { width: 0, height: 0 }
+  }
+  return { width: window.innerWidth, height: window.innerHeight }
+}
+
+export function useWindowSize(): WindowSize {
+  const [size, setSize] = useState(getSize)
 
   useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth
-      const height = window.innerHeight
-      setWindowSize({
-        width,
-        height,
-        isMobile: width < 768,
-        isTablet: width >= 768 && width < 1024,
-        isDesktop: width >= 1024,
-      })
+    if (typeof window === 'undefined') {
+      return
     }
 
-    window.addEventListener('resize', handleResize)
-    handleResize()
-
-    return () => window.removeEventListener('resize', handleResize)
+    const onResize = () => setSize(getSize())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  return windowSize
+  return size
 }

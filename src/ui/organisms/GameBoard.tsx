@@ -1,4 +1,5 @@
-import type { Difficulty, GameState, LastMove, Opponent } from '@/domain/types'
+import { useResponsiveState } from '@/app'
+import type { GameState, LastMove, Opponent } from '@/domain/types'
 import { PileToggle } from '@/ui/molecules'
 import { cx } from '@/ui/utils/cssModules'
 import { useCallback, useEffect } from 'react'
@@ -9,21 +10,12 @@ interface GameBoardProps {
   state: GameState
   selectedPileId: number | null
   selectedCount: number
-  difficulty: Difficulty
   opponent: Opponent
   cpuThinking: boolean
   isMobile: boolean
   onObjectClick: (pileId: number, index: number) => void
   onConfirm: () => void
   onReset: () => void
-  onBack: () => void
-  onSettings: () => void
-}
-
-const difficultyClass: Record<Difficulty, string> = {
-  easy: styles.badgeEasy,
-  medium: styles.badgeMedium,
-  hard: styles.badgeHard,
 }
 
 function getPlayerLabel(opponent: Opponent, currentPlayer: 'human' | 'cpu'): string {
@@ -51,16 +43,14 @@ export function GameBoard({
   state,
   selectedPileId,
   selectedCount,
-  difficulty,
   opponent,
   cpuThinking,
   isMobile,
   onObjectClick,
   onConfirm,
   onReset,
-  onBack,
-  onSettings,
 }: GameBoardProps) {
+  const responsive = useResponsiveState()
   const canConfirm = selectedPileId !== null && selectedCount > 0
   const isHumanTurn = state.currentPlayer === 'human'
   const canInteract = opponent === 'local' || isHumanTurn
@@ -102,21 +92,9 @@ export function GameBoard({
       } else if (e.key === 'Enter' && canConfirm) {
         e.preventDefault()
         onConfirm()
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        onBack()
       }
     },
-    [
-      state,
-      selectedPileId,
-      selectedCount,
-      canInteract,
-      canConfirm,
-      onObjectClick,
-      onConfirm,
-      onBack,
-    ],
+    [state, selectedPileId, selectedCount, canInteract, canConfirm, onObjectClick, onConfirm],
   )
 
   useEffect(() => {
@@ -124,45 +102,35 @@ export function GameBoard({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
+  // Determine board size based on device class
+  const getBoardMaxWidth = (): string => {
+    if (responsive.isMobile) {
+      return '90vw'
+    }
+    if (responsive.isTablet) {
+      return '500px'
+    }
+    if (responsive.isDesktop && !responsive.wideViewport) {
+      return '600px'
+    }
+    return '700px'
+  }
+
   return (
-    <div className={cx(styles.root, isMobile && styles.rootMobile)}>
-      {/* Top Bar */}
-      <div className={styles.topBar}>
-        <button className={styles.closeBtn} onClick={onBack} aria-label="Back to menu">
-          ✕
-        </button>
-        <h2 className={styles.heading}>Nim</h2>
-        <button className={styles.gearBtn} onClick={onSettings} aria-label="Settings">
-          ⚙
-        </button>
-      </div>
-
-      {/* Info Badges */}
-      <div className={styles.infoBadges}>
-        <div className={styles.badge}>
-          <span className={styles.badgeLabel}>Mode: </span>
-          <span className={state.mode === 'normal' ? styles.badgeNormal : styles.badgeMisere}>
-            {state.mode === 'normal' ? 'Normal' : 'Misère'}
-          </span>
-        </div>
-        {opponent === 'cpu' && (
-          <div className={styles.badge}>
-            <span className={styles.badgeLabel}>AI: </span>
-            <span className={difficultyClass[difficulty]}>
-              {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-            </span>
-          </div>
-        )}
-        {opponent === 'local' && (
-          <div className={styles.badge}>
-            <span className={styles.badgeLabel}>Mode: </span>
-            <span className={styles.badgeNormal}>2 Player</span>
-          </div>
-        )}
-      </div>
-
+    <div
+      className={cx(styles.root, isMobile && styles.rootMobile)}
+      style={{
+        maxWidth: getBoardMaxWidth(),
+        padding: responsive.contentDensity === 'compact' ? '1rem' : '1.5rem',
+      }}
+    >
       {/* Piles */}
-      <div className={styles.pilesArea}>
+      <div
+        className={styles.pilesArea}
+        style={{
+          gap: responsive.contentDensity === 'compact' ? '0.75rem' : '1.25rem',
+        }}
+      >
         {state.piles.map((pile) => (
           <div
             key={pile.id}
@@ -171,7 +139,12 @@ export function GameBoard({
               state.lastMove?.pileId === pile.id && styles.lastMovePile,
             )}
           >
-            <div className={styles.pileWrapper}>
+            <div
+              className={styles.pileWrapper}
+              style={{
+                transform: responsive.contentDensity === 'compact' ? 'scale(0.95)' : 'scale(1)',
+              }}
+            >
               <PileToggle
                 id={pile.id}
                 count={pile.count}
@@ -188,6 +161,11 @@ export function GameBoard({
                   onConfirm()
                 }}
                 aria-label={`Take all from pile ${pile.id + 1}`}
+                style={{
+                  padding:
+                    responsive.contentDensity === 'compact' ? '0.4rem 0.6rem' : '0.5rem 0.8rem',
+                  fontSize: responsive.contentDensity === 'compact' ? '0.9rem' : '1rem',
+                }}
               >
                 −
               </button>
@@ -197,15 +175,30 @@ export function GameBoard({
       </div>
 
       {/* Bottom */}
-      <div className={styles.bottomSection}>
+      <div
+        className={styles.bottomSection}
+        style={{
+          marginTop: responsive.contentDensity === 'compact' ? '1rem' : '1.5rem',
+        }}
+      >
         {state.isGameOver ? (
           <div className={styles.winOverlay}>
             <h2
               className={cx(styles.winTitle, playerWon ? styles.winTitleWin : styles.winTitleLose)}
+              style={{
+                fontSize: responsive.contentDensity === 'compact' ? '1.5rem' : '2rem',
+              }}
             >
               {getWinnerLabel(opponent, state.winner, state.lastMove)}
             </h2>
-            <button className={styles.playAgainBtn} onClick={onReset}>
+            <button
+              className={styles.playAgainBtn}
+              onClick={onReset}
+              style={{
+                padding: responsive.contentDensity === 'compact' ? '0.8rem 1.2rem' : '1rem 1.5rem',
+                fontSize: responsive.contentDensity === 'compact' ? '0.9rem' : '1rem',
+              }}
+            >
               PLAY AGAIN
             </button>
           </div>
@@ -216,6 +209,9 @@ export function GameBoard({
                 styles.turnLabel,
                 canInteract ? styles.turnLabelActive : styles.turnLabelInactive,
               )}
+              style={{
+                fontSize: responsive.contentDensity === 'compact' ? '0.85rem' : '1rem',
+              }}
             >
               {cpuThinking ? (
                 <span>
@@ -239,6 +235,11 @@ export function GameBoard({
                 )}
                 onClick={onConfirm}
                 disabled={!canConfirm}
+                style={{
+                  padding:
+                    responsive.contentDensity === 'compact' ? '0.7rem 1.2rem' : '0.9rem 1.5rem',
+                  fontSize: responsive.contentDensity === 'compact' ? '0.9rem' : '1rem',
+                }}
               >
                 End Turn
               </button>
