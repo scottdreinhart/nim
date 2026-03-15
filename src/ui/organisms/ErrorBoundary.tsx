@@ -1,3 +1,4 @@
+import { useI18nContext } from '@/app'
 import React, { ReactNode } from 'react'
 import styles from './ErrorBoundary.module.css'
 
@@ -10,6 +11,31 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   error: Error | null
   retryCount: number
+}
+
+interface OrganismErrorFallbackProps {
+  error: Error
+  retryCount: number
+  onRetry: () => void
+}
+
+function OrganismErrorFallback({ error, retryCount, onRetry }: OrganismErrorFallbackProps) {
+  const { t } = useI18nContext()
+
+  return (
+    <div className={styles.errorContainer} role="alert">
+      <h1>{t('error.title')}</h1>
+      <p className={styles.message}>{error.message || t('error.unexpected')}</p>
+      <details className={styles.details}>
+        <summary>{t('error.details')}</summary>
+        <pre>{error.stack || t('error.noStack')}</pre>
+      </details>
+      <button className={styles.retryButton} onClick={onRetry}>
+        {t('error.retry')}
+      </button>
+      {retryCount > 0 && <p className={styles.retryInfo}>{t('error.attempt', { count: retryCount + 1 })}</p>}
+    </div>
+  )
 }
 
 /**
@@ -54,20 +80,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
       // Default fallback
       return (
-        <div className={styles.errorContainer} role="alert">
-          <h1>Something went wrong</h1>
-          <p className={styles.message}>{this.state.error.message || 'An error occurred'}</p>
-          <details className={styles.details}>
-            <summary>Error details</summary>
-            <pre>{this.state.error.stack || 'No stack trace available'}</pre>
-          </details>
-          <button className={styles.retryButton} onClick={this.handleRetry}>
-            Try again
-          </button>
-          {this.state.retryCount > 0 && (
-            <p className={styles.retryInfo}>Attempt {this.state.retryCount + 1}</p>
-          )}
-        </div>
+        <OrganismErrorFallback
+          error={this.state.error}
+          retryCount={this.state.retryCount}
+          onRetry={this.handleRetry}
+        />
       )
     }
 

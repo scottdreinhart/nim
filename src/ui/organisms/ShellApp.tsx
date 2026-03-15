@@ -5,6 +5,7 @@
  * This speeds up initial render: splash shows during React init.
  */
 
+import { DEFAULT_LOCALE, translate } from '@/domain'
 import { lazy, Suspense } from 'react'
 
 // Lazy-load the full app with providers (deferred until needed)
@@ -20,9 +21,9 @@ function ImmediateSplash() {
         <div className="nim-splash__badge">
           <div className="nim-splash__emoji">🎯</div>
         </div>
-        <div className="nim-splash__eyebrow">Stack. Remove. Win.</div>
+        <div className="nim-splash__eyebrow">{translate(DEFAULT_LOCALE, 'app.splashEyebrow')}</div>
         <h1 className="nim-splash__title">Nim</h1>
-        <p className="nim-splash__subtitle">Take the last stone, or force your opponent to</p>
+        <p className="nim-splash__subtitle">{translate(DEFAULT_LOCALE, 'app.splashSubtitle')}</p>
         <div className="nim-splash__loading">
           <span className="nim-splash__dot"></span>
           <span className="nim-splash__dot"></span>

@@ -36,7 +36,7 @@ export const haptics = {
   async success(): Promise<void> {
     const platform = resolvePlatformApi()
     await platform.haptics.light()
-    await new Promise(r => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 50))
     await platform.haptics.medium()
   },
 
@@ -46,7 +46,7 @@ export const haptics = {
   async error(): Promise<void> {
     const platform = resolvePlatformApi()
     await platform.haptics.heavy()
-    await new Promise(r => setTimeout(r, 100))
+    await new Promise((r) => setTimeout(r, 100))
     await platform.haptics.heavy()
   },
 }

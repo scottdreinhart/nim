@@ -42,7 +42,7 @@ const electronDiagnostics = {
   logInfo(message: string) {
     console.log('[INFO]', message)
   },
-  trackEvent(eventName: string, data?: Record<string, any>) {
+  trackEvent(_eventName: string, _data?: Record<string, any>) {
     // No-op
   },
 }
@@ -73,7 +73,7 @@ const electronDevice = {
       supportsNotifications: !!('Notification' in window),
     }
   },
-  onOrientationChange(callback: (orientation: 'portrait' | 'landscape') => void): () => void {
+  onOrientationChange(_callback: (orientation: 'portrait' | 'landscape') => void): () => void {
     // Desktop doesn't rotate; return no-op unsubscribe
     return () => {}
   },

@@ -3,7 +3,7 @@
  */
 
 export { default as DifficultyToggle } from './DifficultyToggle'
-export { ErrorBoundary } from './ErrorBoundary'
+export { GlitchText } from './GlitchText'
 export { LoadingScreen } from './LoadingScreen'
 export { NimObject } from './NimObject'
 export { OfflineIndicator } from './OfflineIndicator'

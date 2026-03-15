@@ -1,7 +1,7 @@
 /**
  * Persistent Storage Service
  * Platform-agnostic JSON storage wrapper
- * 
+ *
  * Provides both sync (for React hooks) and async (for platform abstraction) APIs
  */
 
@@ -10,7 +10,7 @@ import { resolvePlatformApi } from '../platform/resolvePlatformApi'
 /**
  * Load a JSON value from persistent storage (SYNCHRONOUS)
  * Returns fallback if not found or parse fails
- * 
+ *
  * Safe to use in React initializers and hooks
  */
 export function load<T>(key: string, fallback: T): T {
@@ -24,7 +24,7 @@ export function load<T>(key: string, fallback: T): T {
 
 /**
  * Save a JSON value to persistent storage (SYNCHRONOUS)
- * 
+ *
  * Safe to use in React callbacks and effects
  */
 export function save<T>(key: string, value: T): void {

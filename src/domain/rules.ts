@@ -10,21 +10,19 @@ export const checkGameOver = (state: GameState): boolean => {
   return state.piles.every((p) => p.count === 0)
 }
 
+const getOtherPlayer = (player: Player): Player => {
+  return player === 'human' ? 'cpu' : 'human'
+}
+
 /**
- * Determines the winner once the game is over.
- * In Normal play: current player (next to move) has no objects left to take, so they lose.
- * In Misère play: last player to take an object loses, so the current player (next to move) wins.
+ * Determines winner once the game is over based on the player who just moved.
+ * - Normal play: player who takes the last object wins.
+ * - Misère play: player who takes the last object loses.
  */
-export const getWinner = (state: GameState): Player | null => {
+export const getWinner = (state: GameState, mover: Player): Player | null => {
   if (!checkGameOver(state)) {
     return null
   }
-  // If it's your turn and there are no objects:
-  // Normal: you lose (CPU just took the last one) -> winner is whoever is NOT current
-  // Misère: you win (CPU just took the last one) -> winner is current
-  return state.mode === 'normal'
-    ? state.currentPlayer === 'human'
-      ? 'cpu'
-      : 'human'
-    : state.currentPlayer
+
+  return state.mode === 'normal' ? mover : getOtherPlayer(mover)
 }

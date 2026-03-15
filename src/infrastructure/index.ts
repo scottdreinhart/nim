@@ -2,7 +2,7 @@
 export * from './platform'
 
 // Infrastructure services
-export { load, save, remove, clear } from './storage'
+export { playClick, playConfirm, playCpuMove, playLose, playSelect, playWin } from './audio'
 export { crashLogger } from './diagnostics'
 export { haptics } from './haptics'
-export { playSelect, playConfirm, playCpuMove, playWin, playLose, playClick } from './audio'
+export { clear, load, remove, save } from './storage'

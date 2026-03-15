@@ -1,3 +1,4 @@
+import { useI18nContext } from '@/app'
 import React from 'react'
 
 export interface NimObjectProps {
@@ -10,6 +11,8 @@ export interface NimObjectProps {
  * A single Nim object (a 3D-effect coin stack element).
  */
 export const NimObject: React.FC<NimObjectProps> = ({ onClick, selected }) => {
+  const { t } = useI18nContext()
+
   return (
     <button
       type="button"
@@ -31,7 +34,7 @@ export const NimObject: React.FC<NimObjectProps> = ({ onClick, selected }) => {
         boxShadow: selected ? '0 6px 12px rgba(255, 143, 0, 0.4)' : '0 2px 0 rgba(0, 0, 0, 0.2)',
         zIndex: selected ? 10 : 1,
       }}
-      aria-label="Nim coin"
+      aria-label={t('nim.coinAria')}
     >
       {/* 3D Rim Effect */}
       <div

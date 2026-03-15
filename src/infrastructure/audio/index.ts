@@ -1,1 +1,1 @@
-export { playSelect, playConfirm, playCpuMove, playWin, playLose, playClick } from './sounds'
+export { playClick, playConfirm, playCpuMove, playLose, playSelect, playWin } from './sounds'

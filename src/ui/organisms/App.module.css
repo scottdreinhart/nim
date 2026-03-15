@@ -19,6 +19,11 @@
   overflow: hidden;
   background: var(--theme-bg);
   color: var(--theme-fg);
+  /* Safe-area padding for iPhone notches + Android system UI */
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-left: max(8px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
 
 .appPage {

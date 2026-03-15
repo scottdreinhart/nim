@@ -8,5 +8,6 @@
 export * from './ai'
 export * from './board'
 export * from './constants'
+export * from './i18n'
 export * from './rules'
 export * from './types'

@@ -13,25 +13,36 @@
  * Board scaling: Dynamic sizing using CSS custom properties + clamp().
  */
 
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+import { App as CapacitorApp } from '@capacitor/app'
+import type { PluginListenerHandle } from '@capacitor/core'
+
 import {
   useGame,
+  useI18nContext,
   useResponsiveState,
   useSoundEffects,
   useStats,
-  useThemeContext,
 } from '@/app'
+import { useThemeContext } from '@/app/context/ThemeContext'
+import { GAME_PRESETS } from '@/domain'
 import { haptics } from '@/infrastructure/haptics'
-import { GAME_PRESETS } from '@/domain/constants'
-import { COLOR_THEMES } from '@/ui/theme'
-import { DifficultyToggle, RulesToggle } from '@/ui/atoms'
-import { OfflineIndicator } from '@/ui/atoms/OfflineIndicator'
-import { HamburgerMenu, MainMenu } from '@/ui/molecules'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  COLOR_THEMES,
+  HamburgerMenu,
+  MainMenu,
+  OfflineIndicator,
+  QuickGameSettings,
+  QuickThemePicker,
+} from '@/ui'
 
 import styles from './App.module.css'
 import { GameBoard } from './GameBoard'
+import { SettingsOverlay } from './SettingsOverlay'
+import { DeviceInfoScreen } from './DeviceInfoScreen'
 
-type AppPhase = 'loading' | 'menu' | 'playing' | 'settings'
+type AppPhase = 'loading' | 'menu' | 'playing' | 'settings' | 'device-info'
 
 export default function App() {
   const responsive = useResponsiveState()
@@ -39,8 +50,8 @@ export default function App() {
   const { stats, recordWin, recordLoss } = useStats()
   const sfx = useSoundEffects()
   const { settings, setColorTheme } = useThemeContext()
+  const { locale, setLocale, t } = useI18nContext()
   const [phase, setPhase] = useState<AppPhase>('loading')
-  const [tempSetup, setTempSetup] = useState<number[]>(game.setup)
   const prevGameOver = useRef(false)
 
   // Loading screen timer
@@ -48,11 +59,6 @@ export default function App() {
     const timer = setTimeout(() => setPhase('menu'), 1200)
     return () => clearTimeout(timer)
   }, [])
-
-  // Sync tempSetup with game.setup when game changes
-  useEffect(() => {
-    setTempSetup(game.setup)
-  }, [game.setup])
 
   // Sound + haptic + stats on game over
   useEffect(() => {
@@ -100,6 +106,21 @@ export default function App() {
     setPhase('settings')
   }, [sfx])
 
+  const handleCloseSettings = useCallback(() => {
+    sfx.onClick()
+    setPhase('menu')
+  }, [sfx])
+
+  const handleShowDeviceInfo = useCallback(() => {
+    sfx.onClick()
+    setPhase('device-info')
+  }, [sfx])
+
+  const handleCloseDeviceInfo = useCallback(() => {
+    sfx.onClick()
+    setPhase('menu')
+  }, [sfx])
+
   const handleBackToMenu = useCallback(() => {
     sfx.onClick()
     setPhase('menu')
@@ -125,29 +146,71 @@ export default function App() {
     game.resetGame()
   }, [game, sfx])
 
-  const handlePileChange = useCallback(
-    (index: number, val: string) => {
-      const num = parseInt(val, 10) || 0
-      const clamped = Math.min(Math.max(num, 1), 15)
-      const next = [...tempSetup]
-      next[index] = clamped
-      setTempSetup(next)
-      game.updateSetup(next)
-    },
-    [tempSetup, game],
-  )
-
-  const handleApplyPreset = useCallback(
-    (counts: number[]) => {
-      setTempSetup([...counts])
-      game.updateSetup(counts)
+  const handleConfirmSettings = useCallback(
+    (next: {
+      setup: number[]
+      mode: 'normal' | 'misere'
+      difficulty: 'easy' | 'medium' | 'hard'
+      themeId: string
+      locale: 'en' | 'es'
+    }) => {
+      game.updateSetup(next.setup)
+      game.setMode(next.mode)
+      game.setDifficulty(next.difficulty)
+      setColorTheme(next.themeId)
+      setLocale(next.locale)
       sfx.onClick()
+      setPhase('menu')
     },
-    [game, sfx],
+    [game, setColorTheme, setLocale, sfx],
   )
 
-  const isPresetActive = (counts: number[]) =>
-    counts.length === tempSetup.length && counts.every((c, i) => c === tempSetup[i])
+  // Capacitor lifecycle: pause, resume, hardwareBackPress
+  useEffect(() => {
+    const unlisteners: PluginListenerHandle[] = []
+
+    // Setup listeners asynchronously
+    const setupListeners = async () => {
+      // Handle app pause (native app suspension on iOS/Android)
+      const pauseListener = await CapacitorApp.addListener('pause', () => {
+        // Game state is already persisted via hooks (useGame, useStats, etc.)
+        // No additional action needed here
+        console.debug('[Capacitor] App paused - state auto-persisted')
+      })
+      unlisteners.push(pauseListener)
+
+      // Handle app resume (app returned to foreground)
+      const resumeListener = await CapacitorApp.addListener('resume', () => {
+        // Could re-initialize if needed (e.g., analytics tracking, sound context)
+        console.debug('[Capacitor] App resumed')
+      })
+      unlisteners.push(resumeListener)
+
+      // Handle Android hardware back button
+      const backListener = await CapacitorApp.addListener(
+        'backButton',
+        async () => {
+          // Navigate based on current phase
+          if (phase === 'playing') {
+            handleBackToMenu()
+          } else if (phase === 'settings') {
+            handleCloseSettings()
+          } else if (phase === 'menu' || phase === 'loading') {
+            // Allow OS to handle (app exit)
+            // Optional: show exit confirmation
+            console.debug('[Capacitor] Back button on menu - allowing app exit')
+          }
+        },
+      )
+      unlisteners.push(backListener)
+    }
+
+    setupListeners().catch(err => console.error('[Capacitor] Setup failed:', err))
+
+    return () => {
+      unlisteners.forEach(listener => listener.remove())
+    }
+  }, [phase, handleBackToMenu, handleCloseSettings])
 
   // ─── Show Splash ───
   if (phase === 'loading') {
@@ -159,9 +222,9 @@ export default function App() {
           <div className="nim-splash__badge">
             <div className="nim-splash__emoji">🎯</div>
           </div>
-          <div className="nim-splash__eyebrow">Stack. Remove. Win.</div>
+          <div className="nim-splash__eyebrow">{t('app.splashEyebrow')}</div>
           <h1 className="nim-splash__title">Nim</h1>
-          <p className="nim-splash__subtitle">Take the last stone, or force your opponent to</p>
+          <p className="nim-splash__subtitle">{t('app.splashSubtitle')}</p>
           <div className="nim-splash__loading">
             <span className="nim-splash__dot"></span>
             <span className="nim-splash__dot"></span>
@@ -172,18 +235,66 @@ export default function App() {
     )
   }
 
-  // ─── Show Menu ───
-  if (phase === 'menu') {
+  // ─── Show Menu / Settings Surface ───
+  if (phase === 'menu' || phase === 'settings' || phase === 'device-info') {
     return (
       <div className={styles.appPage}>
         <OfflineIndicator />
-        <MainMenu
-          isMobile={responsive.isMobile}
-          stats={stats}
-          onPlay={handlePlayVsCpu}
-          onPlayLocal={handlePlayLocal}
-          onSettings={handleShowSettings}
-        />
+        {phase === 'device-info' ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              padding: '2rem 1rem',
+              minHeight: '100vh',
+            }}
+          >
+            <button
+              onClick={handleCloseDeviceInfo}
+              style={{
+                alignSelf: 'flex-start',
+                marginBottom: '1rem',
+                padding: '0.5rem 1rem',
+                background: 'transparent',
+                border: '1px solid var(--color-border, #ccc)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+              aria-label={t('menu.close')}
+            >
+              ← Back
+            </button>
+            <DeviceInfoScreen />
+          </div>
+        ) : (
+          <>
+            <MainMenu
+              isMobile={responsive.isMobile}
+              stats={stats}
+              onPlay={handlePlayVsCpu}
+              onPlayLocal={handlePlayLocal}
+              onSettings={handleShowSettings}
+              onDeviceInfo={handleShowDeviceInfo}
+            />
+            <SettingsOverlay
+              open={phase === 'settings'}
+              initialSetup={game.setup}
+              initialMode={game.state.mode}
+              initialDifficulty={game.difficulty}
+              initialThemeId={settings.colorTheme}
+              initialLocale={locale}
+              presets={GAME_PRESETS}
+              themes={COLOR_THEMES}
+              onConfirm={handleConfirmSettings}
+              onCancel={handleCloseSettings}
+            />
+          </>
+        )}
       </div>
     )
   }
@@ -197,218 +308,62 @@ export default function App() {
       <header className={styles.appHeader}>
         <div className={styles.headerLeft}>
           <button
+            type="button"
             className={styles.backBtn}
             onClick={handleBackToMenu}
-            aria-label="Back to menu"
-            title="Back"
+            aria-label={t('app.backToMenu')}
+            title={t('app.backButtonTitle')}
           >
             ✕
           </button>
         </div>
 
-        <h1 className={styles.headerTitle}>Game of Nim</h1>
+        <h1 className={styles.headerTitle}>{t('app.headerTitle')}</h1>
 
         <div className={styles.headerRight}>
           <HamburgerMenu>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Game Board / Piles Section */}
-              <div
-                style={{
-                  paddingBottom: '8px',
-                  borderBottom: '1px solid var(--theme-border)',
-                  opacity: 0.3,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '0.65rem',
-                    textTransform: 'uppercase',
-                    opacity: 0.7,
-                    marginBottom: '6px',
-                    color: 'var(--theme-accent)',
-                    fontWeight: 600,
-                  }}
-                >
-                  Initial Piles
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '4px',
-                    justifyContent: 'center',
-                    marginBottom: '6px',
-                  }}
-                >
-                  {tempSetup.map((count, i) => (
-                    <input
-                      key={i}
-                      type="number"
-                      value={count}
-                      onChange={(e) => handlePileChange(i, e.target.value)}
-                      style={{
-                        width: '40px',
-                        padding: '4px 6px',
-                        border: '1px solid var(--theme-border)',
-                        background: 'var(--theme-bg)',
-                        color: 'var(--theme-fg)',
-                        borderRadius: '4px',
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                      }}
-                      min="1"
-                      max="15"
-                    />
-                  ))}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '4px',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {GAME_PRESETS.map((preset) => (
-                    <button
-                      key={preset.name}
-                      onClick={() => handleApplyPreset(preset.counts)}
-                      style={{
-                        padding: '3px 8px',
-                        fontSize: '0.65rem',
-                        border: `1px solid var(--theme-accent)`,
-                        background: isPresetActive(preset.counts)
-                          ? 'var(--theme-accent)'
-                          : 'transparent',
-                        color: isPresetActive(preset.counts)
-                          ? 'var(--theme-bg)'
-                          : 'var(--theme-accent)',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        fontWeight: isPresetActive(preset.counts) ? 600 : 400,
-                      }}
-                      onMouseEnter={(e) => {
-                        const el = e.currentTarget as HTMLElement
-                        if (!isPresetActive(preset.counts)) {
-                          el.style.opacity = '0.85'
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        const el = e.currentTarget as HTMLElement
-                        if (!isPresetActive(preset.counts)) {
-                          el.style.opacity = '1'
-                        }
-                      }}
-                    >
-                      {preset.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div
-                style={{ height: '1px', backgroundColor: 'var(--theme-border)', opacity: 0.3 }}
-              />
-
-              {/* Theme Selector Grid */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '6px',
-                  marginTop: '4px',
-                }}
-              >
-                {COLOR_THEMES.map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => {
-                      sfx.onClick()
-                      setColorTheme(theme.id)
-                    }}
-                    title={theme.label}
-                    style={{
-                      padding: '6px 4px',
-                      backgroundColor:
-                        settings.colorTheme === theme.id ? theme.accent : 'transparent',
-                      border: `2px solid ${theme.accent}`,
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      fontSize: '0.65rem',
-                      fontWeight: settings.colorTheme === theme.id ? 600 : 400,
-                      color:
-                        settings.colorTheme === theme.id ? 'var(--theme-bg)' : 'var(--theme-fg)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '2px',
-                      opacity: settings.colorTheme === theme.id ? 1 : 0.7,
-                      boxShadow:
-                        settings.colorTheme === theme.id ? `0 0 8px ${theme.accent}88` : 'none',
-                    }}
-                    onMouseEnter={(e) => {
-                      const el = e.currentTarget as HTMLElement
-                      if (settings.colorTheme !== theme.id) {
-                        el.style.opacity = '0.9'
-                        el.style.borderColor = theme.accent
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      const el = e.currentTarget as HTMLElement
-                      if (settings.colorTheme !== theme.id) {
-                        el.style.opacity = '0.7'
-                      }
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '2px',
-                        backgroundColor: theme.accent,
-                      }}
-                    />
-                    {theme.label.slice(0, 3).toUpperCase()}
-                  </button>
-                ))}
-              </div>
-
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  opacity: 0.6,
-                  marginTop: '8px',
-                }}
-              >
-                Difficulty
-              </div>
-              <DifficultyToggle
-                difficulty={game.difficulty}
-                onSelect={(d) => {
+              <QuickThemePicker
+                themes={COLOR_THEMES}
+                activeThemeId={settings.colorTheme}
+                onSelectTheme={(themeId) => {
                   sfx.onClick()
-                  game.setDifficulty(d)
+                  setColorTheme(themeId)
                 }}
               />
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  opacity: 0.6,
-                  marginTop: '8px',
-                }}
-              >
-                Rules
-              </div>
-              <RulesToggle
+
+              <QuickGameSettings
+                difficulty={game.difficulty}
                 mode={game.state.mode}
-                onSelect={(mode) => {
+                onSelectDifficulty={(difficulty) => {
+                  sfx.onClick()
+                  game.setDifficulty(difficulty)
+                }}
+                onSelectMode={(mode) => {
                   sfx.onClick()
                   game.setMode(mode)
                 }}
+                onOpenFullSettings={() => setPhase('settings')}
               />
+
+              <button
+                onClick={() => {
+                  sfx.onClick()
+                  handleShowDeviceInfo()
+                }}
+                style={{
+                  padding: '0.75rem 1rem',
+                  background: 'var(--color-bg-secondary, #f0f0f0)',
+                  border: '1px solid var(--color-border, #ddd)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  textAlign: 'left',
+                }}
+              >
+                📱 Device Info
+              </button>
             </div>
           </HamburgerMenu>
         </div>

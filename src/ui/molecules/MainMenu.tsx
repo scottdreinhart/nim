@@ -1,6 +1,6 @@
-import { useResponsiveState } from '@/app'
-import type { GameStats } from '@/domain/types'
-import { cx } from '@/ui/utils/cssModules'
+import { useI18nContext, useResponsiveState } from '@/app'
+import type { GameStats } from '@/domain'
+import { cx } from '@/ui'
 
 import styles from './MainMenu.module.css'
 
@@ -10,10 +10,12 @@ interface MainMenuProps {
   onPlay: () => void
   onPlayLocal: () => void
   onSettings: () => void
+  onDeviceInfo?: () => void
 }
 
-export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: MainMenuProps) {
+export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings, onDeviceInfo }: MainMenuProps) {
   const responsive = useResponsiveState()
+  const { t } = useI18nContext()
 
   // Determine layout variant based on device class
   const layoutVariant = responsive.isMobile ? 'mobile' : responsive.isTablet ? 'tablet' : 'desktop'
@@ -26,14 +28,14 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
         isMobile && styles.rootMobile, // Legacy fallback
       )}
     >
-      <h1 className={styles.title}>Game of Nim</h1>
+      <h1 className={styles.title}>{t('mainMenu.title')}</h1>
       <p
         className={styles.subtitle}
         style={{
           fontSize: responsive.contentDensity === 'compact' ? '0.85rem' : '0.95rem',
         }}
       >
-        A classic strategy game
+        {t('mainMenu.subtitle')}
       </p>
 
       {(stats.wins > 0 || stats.losses > 0) && (
@@ -55,7 +57,7 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
             >
               {stats.wins}
             </span>
-            <span className={styles.statLabel}>Wins</span>
+            <span className={styles.statLabel}>{t('mainMenu.wins')}</span>
           </div>
           <div className={styles.statItem}>
             <span
@@ -66,7 +68,7 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
             >
               {stats.losses}
             </span>
-            <span className={styles.statLabel}>Losses</span>
+            <span className={styles.statLabel}>{t('mainMenu.losses')}</span>
           </div>
           <div className={styles.statItem}>
             <span
@@ -77,7 +79,7 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
             >
               {stats.bestStreak}
             </span>
-            <span className={styles.statLabel}>Best Streak</span>
+            <span className={styles.statLabel}>{t('mainMenu.bestStreak')}</span>
           </div>
         </div>
       )}
@@ -99,7 +101,7 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
             flex: responsive.isDesktop ? 1 : 'none',
           }}
         >
-          Play vs AI
+          {t('mainMenu.playVsAi')}
         </button>
         <button
           className={styles.secondaryBtn}
@@ -110,7 +112,7 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
             flex: responsive.isDesktop ? 1 : 'none',
           }}
         >
-          2 Player
+          {t('mainMenu.twoPlayer')}
         </button>
         <button
           className={styles.secondaryBtn}
@@ -121,8 +123,23 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
             flex: responsive.isDesktop ? 1 : 'none',
           }}
         >
-          Settings
+          {t('mainMenu.settings')}
         </button>
+        {onDeviceInfo && (
+          <button
+            className={styles.tertiaryBtn}
+            onClick={onDeviceInfo}
+            style={{
+              padding: responsive.contentDensity === 'compact' ? '0.75rem' : '1rem',
+              fontSize: responsive.contentDensity === 'compact' ? '0.9rem' : '1rem',
+              flex: responsive.isDesktop ? 1 : 'none',
+            }}
+            aria-label="Device information"
+            title="View platform and device info"
+          >
+            ℹ️ Info
+          </button>
+        )}
       </div>
 
       <p
@@ -132,9 +149,9 @@ export function MainMenu({ isMobile, stats, onPlay, onPlayLocal, onSettings }: M
           fontSize: responsive.contentDensity === 'compact' ? '0.8rem' : '0.9rem',
         }}
       >
-        Remove objects from heaps.
+        {t('mainMenu.hintLine1')}
         <br />
-        Choose Normal or Misère rules in Settings.
+        {t('mainMenu.hintLine2')}
       </p>
     </div>
   )

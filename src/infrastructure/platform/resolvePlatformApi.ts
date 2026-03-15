@@ -3,11 +3,11 @@
  * Resolves and caches the appropriate PlatformApi implementation
  */
 
+import { createBrowserPlatformApi } from './adapters/browser/index'
+import { createCapacitorPlatformApi } from './adapters/capacitor/index'
+import { createElectronPlatformApi } from './adapters/electron/index'
 import type { PlatformApi } from './contracts/types'
 import { detectPlatform } from './detection'
-import { createBrowserPlatformApi } from './adapters/browser/index'
-import { createElectronPlatformApi } from './adapters/electron/index'
-import { createCapacitorPlatformApi } from './adapters/capacitor/index'
 
 let _platformApi: PlatformApi | null = null
 

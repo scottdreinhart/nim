@@ -41,3 +41,4 @@ ios/
 *.tgz
 .cache/
 .node-platform.md
+.env.android

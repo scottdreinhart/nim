@@ -1,4 +1,4 @@
-import { NimObject } from '@/ui/atoms'
+import { NimObject } from '@/ui'
 import React from 'react'
 
 export interface PileProps {

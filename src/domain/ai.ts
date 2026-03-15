@@ -1,91 +1,113 @@
-import type { Move as AIMove, Difficulty, GameState } from './types'
+import type { Difficulty, GameMode, GameState, Move as AIMove } from './types'
 
-/**
- * Calculates the current Nim-sum (XOR sum) of all piles.
- * The core strategy of Nim depends on whether this sum is 0 or non-zero.
- */
-export const calculateNimSum = (state: GameState): number => {
-  return state.piles.reduce((acc, p) => acc ^ p.count, 0)
-}
+const getCounts = (state: GameState): number[] => state.piles.map((pile) => pile.count)
 
-/**
- * Misere Play strategy logic:
- * If there is only one pile with > 1 object, reduce it to 1 or 0
- * to ensure an odd number of piles with count 1 remains.
- */
-const getMisereMove = (state: GameState): AIMove | null => {
-  const bigPiles = state.piles.filter((p) => p.count > 1)
-  if (bigPiles.length === 1) {
-    const singleBigPile = bigPiles[0]
-    const onesPiles = state.piles.filter((p) => p.count === 1).length
-    // We want to leave an odd number of piles with count 1.
-    const targetCount = onesPiles % 2 === 0 ? 1 : 0
-    return { pileId: singleBigPile.id, removeCount: singleBigPile.count - targetCount }
+const getLegalMoves = (counts: number[]): AIMove[] => {
+  const moves: AIMove[] = []
+  for (let pileId = 0; pileId < counts.length; pileId += 1) {
+    const count = counts[pileId]
+    for (let removeCount = 1; removeCount <= count; removeCount += 1) {
+      moves.push({ pileId, removeCount })
+    }
   }
-  return null
+  return moves
+}
+
+const applyMoveToCounts = (counts: number[], move: AIMove): number[] => {
+  const next = [...counts]
+  next[move.pileId] -= move.removeCount
+  return next
+}
+
+const isTerminal = (counts: number[]): boolean => counts.every((count) => count === 0)
+
+const makeMemoKey = (counts: number[], mode: GameMode): string => `${mode}:${counts.join(',')}`
+
+/**
+ * Returns whether the current position is winning for the player to move.
+ *
+ * Normal play terminal condition:
+ * - No legal move => loss for player to move.
+ *
+ * Misère terminal condition:
+ * - No legal move => win for player to move (opponent took last and loses).
+ */
+const isWinningPosition = (counts: number[], mode: GameMode, memo: Map<string, boolean>): boolean => {
+  if (isTerminal(counts)) {
+    return mode === 'misere'
+  }
+
+  const key = makeMemoKey(counts, mode)
+  const cached = memo.get(key)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const legalMoves = getLegalMoves(counts)
+  for (const move of legalMoves) {
+    const nextCounts = applyMoveToCounts(counts, move)
+    const opponentWinning = isWinningPosition(nextCounts, mode, memo)
+    if (!opponentWinning) {
+      memo.set(key, true)
+      return true
+    }
+  }
+
+  memo.set(key, false)
+  return false
+}
+
+const getWinningMoves = (state: GameState): AIMove[] => {
+  const counts = getCounts(state)
+  const memo = new Map<string, boolean>()
+  const legalMoves = getLegalMoves(counts)
+
+  return legalMoves.filter((move) => {
+    const nextCounts = applyMoveToCounts(counts, move)
+    return !isWinningPosition(nextCounts, state.mode, memo)
+  })
+}
+
+const getRandomMove = (state: GameState): AIMove => {
+  const legalMoves = getLegalMoves(getCounts(state))
+  if (legalMoves.length === 0) {
+    return { pileId: 0, removeCount: 0 }
+  }
+  return legalMoves[Math.floor(Math.random() * legalMoves.length)]
 }
 
 /**
- * Easy AI — picks a random pile and removes a random amount.
+ * Easy AI — random legal move.
  */
 const selectMoveEasy = (state: GameState): AIMove => {
-  const nonEmpty = state.piles.filter((p) => p.count > 0)
-  if (nonEmpty.length === 0) {
-    return { pileId: 0, removeCount: 0 }
-  }
-  const pile = nonEmpty[Math.floor(Math.random() * nonEmpty.length)]
-  const removeCount = Math.floor(Math.random() * pile.count) + 1
-  return { pileId: pile.id, removeCount }
+  return getRandomMove(state)
 }
 
 /**
- * Medium AI — plays optimally 40% of the time, otherwise takes 1 from a random pile.
+ * Medium AI — prefers winning moves, but intentionally allows imperfection.
+ * - 60%: choose a winning move if available.
+ * - 40%: random legal move.
  */
 const selectMoveMedium = (state: GameState): AIMove => {
-  if (Math.random() < 0.4) {
-    return selectMoveHard(state)
+  const winningMoves = getWinningMoves(state)
+  if (winningMoves.length > 0 && Math.random() < 0.6) {
+    return winningMoves[Math.floor(Math.random() * winningMoves.length)]
   }
-  const nonEmpty = state.piles.filter((p) => p.count > 0)
-  if (nonEmpty.length === 0) {
-    return { pileId: 0, removeCount: 0 }
-  }
-  const pile = nonEmpty[Math.floor(Math.random() * nonEmpty.length)]
-  return { pileId: pile.id, removeCount: 1 }
+  return getRandomMove(state)
 }
 
 /**
- * Hard AI — Selects the best move using the Nim-sum strategy.
- * This is optimal for both Normal play and (mostly) Misère play.
+ * Hard AI — always chooses a winning move when one exists.
+ * Fully mode-aware (normal + misère) via game-state solving.
  */
 const selectMoveHard = (state: GameState): AIMove => {
-  // Check for specialized Misère end-game first
-  if (state.mode === 'misere') {
-    const misereMove = getMisereMove(state)
-    if (misereMove) {
-      return misereMove
-    }
+  const winningMoves = getWinningMoves(state)
+  if (winningMoves.length > 0) {
+    return winningMoves[0]
   }
 
-  const nimSum = calculateNimSum(state)
-
-  if (nimSum !== 0) {
-    // There exists a winning move: make nimSum 0.
-    for (const pile of state.piles) {
-      const targetCount = pile.count ^ nimSum
-      if (targetCount < pile.count) {
-        return { pileId: pile.id, removeCount: pile.count - targetCount }
-      }
-    }
-  }
-
-  // If nimSum is 0 (losing position), just take 1 from the first non-empty pile.
-  const firstNonEmpty = state.piles.find((p) => p.count > 0)
-  if (firstNonEmpty) {
-    return { pileId: firstNonEmpty.id, removeCount: 1 }
-  }
-
-  // Should never happen if checkGameOver works.
-  return { pileId: 0, removeCount: 0 }
+  // No forced win exists from this position; return legal fallback.
+  return getRandomMove(state)
 }
 
 /**

@@ -1,1 +1,10 @@
-export { load, save, remove, clear, loadAsync, saveAsync, removeAsync, clearAsync } from './persistence'
+export {
+  clear,
+  clearAsync,
+  load,
+  loadAsync,
+  remove,
+  removeAsync,
+  save,
+  saveAsync,
+} from './persistence'

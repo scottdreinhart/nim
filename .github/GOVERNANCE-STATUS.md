@@ -141,6 +141,9 @@
 
 | Component | Status | Details |
 |-----------|--------|---------|
+| **CSRF Protections** | ✅ Implemented | State-changing backend routes require CSRF defense strategy |
+| **Session Cookie Hardening** | ✅ Implemented | Sensitive session tokens use `HttpOnly` + `Secure` + `SameSite` policy |
+| **CSP Hardening** | ✅ Implemented | CSP baseline includes strict source controls and hardening directives |
 | **Dependency Scanning** | ⚠️ Deferred | Can add Dependabot later |
 | **License Compliance** | ✅ Ready | MIT + Apache 2.0 headers in place |
 | **SECRETS Policy** | ✅ Implemented | No secrets in git; .env.example provided |

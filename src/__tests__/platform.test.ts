@@ -8,13 +8,8 @@
  * - Browser fallbacks work when Capacitor plugins unavailable
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import {
-  detectPlatform,
-  resolvePlatformApi,
-  resetPlatformApi,
-  type DetectedPlatform,
-} from '@/infrastructure/platform'
+import { detectPlatform, resetPlatformApi, resolvePlatformApi } from '@/infrastructure/platform'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('Platform Detection & Resolution', () => {
   beforeEach(() => {
@@ -69,7 +64,7 @@ describe('Platform Detection & Resolution', () => {
     })
 
     it('resets cached API when resetPlatformApi() called', () => {
-      const api1 = resolvePlatformApi()
+      resolvePlatformApi()
       resetPlatformApi()
       const api2 = resolvePlatformApi()
       // Note: May be same implementation, but API object itself is recreated

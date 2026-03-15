@@ -1,0 +1,219 @@
+#!/bin/bash
+
+# setup-android-wsl.sh
+# Robust Android SDK + emulator setup for WSL Ubuntu (x86_64)
+# Features robust downloads with fallbacks and better error handling
+# 
+# Usage:
+#   bash scripts/setup-android-wsl.sh [--docker|--skip-download]
+#
+# Options:
+#   --docker          Use Docker image instead of local SDK
+#   --skip-download   Skip download, use existing ~/android-tools
+#
+# This script:
+# 1. Installs Android SDK to ~/android-tools (not in project)
+# 2. Creates .env.android to load environment (git-ignored)
+# 3. Downloads Android 34 + 28 system images (x86_64, WSL-compatible)
+# 4. Creates two emulator AVDs (Pixel 7 API 34, Pixel 6a API 28)
+# 5. Does NOT modify project files
+
+set -e
+
+echo "═══════════════════════════════════════════════════════════"
+echo "Android SDK Setup for WSL Ubuntu (x86_64)"
+echo "═══════════════════════════════════════════════════════════"
+
+# Parse arguments
+USE_DOCKER=false
+SKIP_DOWNLOAD=false
+for arg in "$@"; do
+  case "$arg" in
+    --docker) USE_DOCKER=true ;;
+    --skip-download) SKIP_DOWNLOAD=true ;;
+  esac
+done
+
+# Paths
+ANDROID_TOOLS_DIR="${HOME}/android-tools"
+ANDROID_SDK="${ANDROID_TOOLS_DIR}/android-sdk"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# ────────────────────────────────────────────────────────────
+# Docker option (faster, no downloads)
+# ────────────────────────────────────────────────────────────
+if [ "$USE_DOCKER" = true ]; then
+  echo -e "${BLUE}Using Docker-based Android environment${NC}"
+  echo -e "${YELLOW}Installing Docker Android container...${NC}"
+  
+  if ! command -v docker &> /dev/null; then
+    echo -e "❌ Docker not found. Install from: https://docs.docker.com/desktop/install/windows/"
+    exit 1
+  fi
+  
+  # Create minimal docker setup guide
+  cat > .docker-android-guide.md << 'EOF'
+# Docker-based Android Development
+
+Run Android builds in Docker (no local SDK needed):
+
+```bash
+# Build APK in Docker
+docker run --rm \
+  -v "$(pwd):/workspace" \
+  -w /workspace \
+  ghcr.io/jfrog/frogbot:latest \
+  bash -c "apt-get update && apt-get install -y openjdk-17-jdk-headless && ./android/gradlew -p android assembleDebug"
+```
+
+Alternatively, use Android Studio's official Docker images.
+EOF
+  
+  echo -e "${GREEN}✓ Docker guide created (.docker-android-guide.md)${NC}"
+  echo "Run: cat .docker-android-guide.md"
+  exit 0
+fi
+
+# ────────────────────────────────────────────────────────────
+# Standard local installation
+# ────────────────────────────────────────────────────────────
+
+echo -e "${YELLOW}Step 1: Create directories${NC}"
+mkdir -p "${ANDROID_TOOLS_DIR}"
+mkdir -p "${ANDROID_SDK}/cmdline-tools"
+cd "${ANDROID_TOOLS_DIR}"
+
+echo -e "${YELLOW}Step 2: Download Android SDK command-line tools${NC}"
+if [ ! -f "cmdline-tools.zip" ]; then
+  echo "Downloading from: $CMDLINE_TOOLS_URL"
+  if ! wget -q --timeout=30 "${CMDLINE_TOOLS_URL}" -O cmdline-tools.zip; then
+    echo -e "❌ Download failed. Trying alternate URL..."
+    # Alternate URL (alternative mirror or fallback)
+    rm -f cmdline-tools.zip
+    wget -q --timeout=30 "https://dl-ssl.google.com/android/repository/commandlinetools-linux-latest.zip" -O cmdline-tools.zip || {
+      echo -e "❌ Both download attempts failed"
+      echo "If network issue, you can manually download from:"
+      echo "  https://developer.android.com/studio/command-line/sdkmanager"
+      echo "And place in: ${ANDROID_TOOLS_DIR}/cmdline-tools.zip"
+      exit 1
+    }
+  fi
+  if [ -f cmdline-tools.zip ] && [ -s cmdline-tools.zip ]; then
+    unzip -q cmdline-tools.zip
+    rm cmdline-tools.zip
+    mv cmdline-tools "${ANDROID_SDK}/cmdline-tools/latest"
+    echo -e "${GREEN}✓ Android SDK downloaded${NC}"
+  else
+    echo -e "❌ Downloaded file is empty or missing"
+    exit 1
+  fi
+else
+  echo -e "${GREEN}✓ Android SDK already exists${NC}"
+fi
+
+# Create .env.android (git-ignored)
+echo -e "${YELLOW}Step 3: Create .env.android${NC}"
+cd - > /dev/null
+cat > .env.android << 'EOF'
+#!/bin/bash
+# .env.android — Android development environment (NOT committed to git)
+# Source this before Android development:
+#   source .env.android
+
+export ANDROID_HOME="${HOME}/android-tools/android-sdk"
+export ANDROID_SDK_ROOT="${ANDROID_HOME}"
+export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/emulator:${ANDROID_HOME}/platform-tools:${PATH}"
+
+# Print status
+echo "✅ Android environment loaded:"
+echo "   ANDROID_HOME: ${ANDROID_HOME}"
+echo "   sdkmanager: $(which sdkmanager)"
+EOF
+chmod +x .env.android
+
+if ! grep -q "\.env\.android" .gitignore 2>/dev/null; then
+  echo ".env.android" >> .gitignore
+  echo -e "${GREEN}✓ Added .env.android to .gitignore${NC}"
+else
+  echo -e "${GREEN}✓ .env.android already in .gitignore${NC}"
+fi
+
+# Source the environment
+source .env.android
+
+echo -e "${YELLOW}Step 4: Install Android SDK components${NC}"
+echo "Installing: API 34 (latest), API 28 (low-end compat)"
+
+# Accept licenses (non-interactive)
+echo -e "\n\n\n\n\n\n\n\n" | sdkmanager --licenses > /dev/null 2>&1 || true
+
+# Install Android API levels (x86_64 for WSL)
+sdkmanager --update > /dev/null 2>&1
+sdkmanager "platforms;android-34" "platforms;android-28" > /dev/null 2>&1
+sdkmanager "build-tools;34.0.0" > /dev/null 2>&1
+sdkmanager "build-tools;28.0.3" > /dev/null 2>&1
+
+# Install emulator + platform-tools
+sdkmanager "emulator" "platform-tools" > /dev/null 2>&1
+
+echo -e "${GREEN}✓ SDK components installed${NC}"
+
+echo -e "${YELLOW}Step 5: Download x86_64 system images (WSL-compatible)${NC}"
+# Use x86_64, NOT arm64 (WSL is x86_64 host)
+sdkmanager "system-images;android-34;google_apis;x86_64" > /dev/null 2>&1 &
+PID1=$!
+sdkmanager "system-images;android-28;google_apis;x86_64" > /dev/null 2>&1 &
+PID2=$!
+wait $PID1 $PID2
+echo -e "${GREEN}✓ System images downloaded${NC}"
+
+echo -e "${YELLOW}Step 6: Remove old ARM64 AVDs (if any)${NC}"
+avdmanager delete avd -n Pixel_7_API_34 2>/dev/null || true
+avdmanager delete avd -n Pixel_6a_API_28 2>/dev/null || true
+echo -e "${GREEN}✓ Old AVDs removed${NC}"
+
+echo -e "${YELLOW}Step 7: Create new AVDs with x86_64 architecture${NC}"
+
+# Create Pixel 7 API 34 AVD
+echo "no" | avdmanager create avd \
+  -n "Pixel_7_API_34" \
+  -k "system-images;android-34;google_apis;x86_64" \
+  -d "pixel_7" \
+  > /dev/null 2>&1
+echo -e "${GREEN}✓ Pixel_7_API_34 created${NC}"
+
+# Create Pixel 6a API 28 AVD (low-end compat)
+echo "no" | avdmanager create avd \
+  -n "Pixel_6a_API_28" \
+  -k "system-images;android-28;google_apis;x86_64" \
+  -d "pixel_6a" \
+  > /dev/null 2>&1
+echo -e "${GREEN}✓ Pixel_6a_API_28 created${NC}"
+
+echo ""
+echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}✅ Android SDK setup complete!${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+echo ""
+echo "Available AVDs:"
+avdmanager list avds | grep "Name:"
+echo ""
+echo "Next steps:"
+echo "1. Load environment:  source .env.android"
+echo "2. Build project:     pnpm build && pnpm cap sync android"
+echo "3. Build APK:         cd android && ./gradlew assembleDebug"
+echo "4. Launch emulator:   emulator -avd Pixel_7_API_34 -no-window &"
+echo "5. Install APK:       adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+echo "6. List packages:     adb shell pm list packages | grep scottreinhart.nim"
+echo "7. Launch app:        adb shell am start -n com.scottreinhart.nim/com.scottreinhart.nim.MainActivity"
+echo ""
+echo "Emulator commands:"
+echo "  • Headless:         emulator -avd Pixel_7_API_34 -no-window &"
+echo "  • With console:     emulator -avd Pixel_7_API_34 &"
+echo "  • GPU accelerated:  emulator -avd Pixel_7_API_34 -gpu host &"
+echo ""

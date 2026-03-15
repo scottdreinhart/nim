@@ -1,4 +1,4 @@
-import { useResponsiveState, useDropdownBehavior } from '@/app'
+import { useDropdownBehavior, useI18nContext, useResponsiveState } from '@/app'
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -15,6 +15,7 @@ interface HamburgerMenuProps {
 
 const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ children }) => {
   const responsive = useResponsiveState()
+  const { t } = useI18nContext()
   const [open, setOpen] = useState(false)
   const [panelPos, setPanelPos] = useState<PanelPosition | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -79,7 +80,9 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ children }) => {
 
   // Reposition menu on window resize
   useLayoutEffect(() => {
-    if (!open) {return}
+    if (!open) {
+      return
+    }
 
     const handleResize = () => {
       // Recalculate position on window resize
@@ -119,8 +122,8 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ children }) => {
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls="nim-menu-panel"
-        aria-label={open ? 'Close menu' : 'Open menu'}
-        title="Menu"
+        aria-label={open ? t('menu.close') : t('menu.open')}
+        title={open ? t('menu.close') : t('menu.open')}
       >
         <span className={styles.icon} aria-hidden="true">
           <span className={`${styles.line}${open ? ` ${styles.lineOpen}` : ''}`} />
@@ -136,7 +139,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ children }) => {
             id="nim-menu-panel"
             className={styles.panel}
             role="menu"
-            aria-label="Game settings"
+            aria-label={t('menu.title')}
             style={{
               ...(panelPos
                 ? { top: panelPos.top, left: panelPos.left }

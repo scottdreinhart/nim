@@ -1,4 +1,5 @@
 import React from 'react'
+import { useI18nContext } from '@/app'
 
 import type { GameMode } from '../../domain/types.ts'
 import styles from './RulesToggle.module.css'
@@ -10,21 +11,30 @@ interface RulesToggleProps {
   onSelect: (mode: GameMode) => void
 }
 
-const RulesToggle = React.memo<RulesToggleProps>(({ mode, onSelect }) => (
-  <div className={styles.root} role="group" aria-label="Game rules variant">
-    {MODES.map((m) => (
-      <button
-        key={m}
-        type="button"
-        className={`${styles.option}${mode === m ? ` ${styles.active}` : ''}`}
-        onClick={mode !== m ? () => onSelect(m) : undefined}
-        aria-pressed={mode === m}
-      >
-        {m === 'normal' ? 'Normal' : 'Misère'}
-      </button>
-    ))}
-  </div>
-))
+const RULE_LABEL_KEY = {
+  normal: 'rules.normal',
+  misere: 'rules.misere',
+} as const
+
+const RulesToggle = React.memo<RulesToggleProps>(({ mode, onSelect }) => {
+  const { t } = useI18nContext()
+
+  return (
+    <div className={styles.root} role="group" aria-label={t('rules.groupAria')}>
+      {MODES.map((m) => (
+        <button
+          key={m}
+          type="button"
+          className={`${styles.option}${mode === m ? ` ${styles.active}` : ''}`}
+          onClick={mode !== m ? () => onSelect(m) : undefined}
+          aria-pressed={mode === m}
+        >
+          {t(RULE_LABEL_KEY[m])}
+        </button>
+      ))}
+    </div>
+  )
+})
 
 RulesToggle.displayName = 'RulesToggle'
 

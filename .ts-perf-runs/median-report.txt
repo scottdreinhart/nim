@@ -1,0 +1,18 @@
+TS stable baseline
+baseline_type=clean_followup_single_pass
+generated_utc=2026-03-14T13:59:52.169Z
+total_s=9.79
+program_s=9.14
+resolveModule_s=6.08
+check_s=0.56
+findSourceFile_ms=43857.90
+processRootFiles_ms=8915.19
+resolveModuleNamesWorker_ms=5791.55
+source_diag=.ts-perf-runs/diag-clean.txt
+source_trace=.ts-trace/trace.json
+
+---
+baseline_history
+format=date_utc,total_s,program_s,resolveModule_s,check_s,findSourceFile_ms,processRootFiles_ms,resolveModuleNamesWorker_ms,note
+2026-03-14T13:56:59.448Z,9.55,8.97,6.04,0.50,37454.01,8235.05,5760.65,clean_followup_single_pass_locked
+2026-03-14T13:59:52.169Z,9.79,9.14,6.08,0.56,43857.90,8915.19,5791.55,clean_followup_single_pass_locked

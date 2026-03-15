@@ -3,7 +3,7 @@
  * Pure data, no DOM manipulation.
  */
 
-import type { ColorblindMode, ColorTheme, ThemeSettings } from './types.ts'
+import type { ColorblindMode, ColorTheme, ThemeSettings } from '@/domain'
 
 export const COLOR_THEMES: readonly ColorTheme[] = [
   { id: 'chiba', label: 'Chiba City', accent: '#00ff41' },

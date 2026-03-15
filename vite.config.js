@@ -42,12 +42,12 @@ export default defineConfig(({ mode }) => {
               return
             }
 
-            // React vendor chunk
+            // React vendor chunk (core only - largest)
             if (id.includes('/react/') || id.includes('/react-dom/')) {
               return 'vendor-react'
             }
 
-            // Capacitor (mobile bridge)
+            // Capacitor (mobile bridge) - separate for iOS/Android
             if (id.includes('/@capacitor/')) {
               return 'vendor-capacitor'
             }
@@ -68,7 +68,10 @@ export default defineConfig(({ mode }) => {
               return null // Externalize: don't bundle these in web output
             }
 
-            return 'vendor'
+            // REMOVED: catch-all 'vendor' chunk causing circular dependency issues
+            // App utilities will now be bundled together with app code (AppWithProviders)
+            // This fixes circular dependency warnings from context re-exports
+            return undefined
           },
         },
       },
