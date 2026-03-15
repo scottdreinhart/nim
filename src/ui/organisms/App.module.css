@@ -29,14 +29,10 @@
 .appPage {
   display: flex;
   flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
+  width: 100%;
+  min-height: 100vh;
   background: var(--theme-bg);
   color: var(--theme-fg);
-  overflow: hidden;
 }
 
 /* ─── Persistent App Header ─── */
