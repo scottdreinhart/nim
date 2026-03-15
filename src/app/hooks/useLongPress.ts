@@ -12,7 +12,7 @@ interface LongPressConfig {
  * @returns Touch and mouse event handlers
  */
 export const useLongPress = ({ duration = 500, onLongPress, onLongPressEnd }: LongPressConfig) => {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | number | null>(null)
   const pressStartedRef = useRef(false)
 
   const handleTouchStart = useCallback(() => {

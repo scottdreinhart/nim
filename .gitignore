@@ -5,6 +5,9 @@ node_modules/
 dist/
 release/
 build/
+test-results/
+playwright-report/
+.playwright/
 
 # Environment variables
 .env
